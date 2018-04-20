@@ -71,7 +71,7 @@ class NoteView extends Component {
         this.closeMember = this.closeMember.bind(this);
         this.searchUser = this.searchUser.bind(this);
 
-        this.ws = new WebSocket('ws://localhost:3001/');
+        this.ws = new WebSocket('ws://54.169.35.33:8080/');
         var self = this;
 
         this.ws.onopen = function () {
