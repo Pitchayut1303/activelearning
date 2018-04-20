@@ -40,7 +40,8 @@ class NoteView extends Component {
             newNoteType: 'text',
             newImgData: "",
             position: [],
-            boardMember: false
+            boardMember: false,
+            userSearchResult: []
             //            writer: ""
         };
         this.toggleAdd = this.toggleAdd.bind(this);
@@ -68,8 +69,9 @@ class NoteView extends Component {
         this.sendExitReq = this.sendExitReq.bind(this);
         this.showMember = this.showMember.bind(this);
         this.closeMember = this.closeMember.bind(this);
+        this.searchUser = this.searchUser.bind(this);
 
-        this.ws = new WebSocket('ws://54.169.35.33:8080/');
+        this.ws = new WebSocket('ws://localhost:3001/');
         var self = this;
 
         this.ws.onopen = function () {
@@ -168,7 +170,7 @@ class NoteView extends Component {
         const { boardName } = this.props.location.state;
         const { username } = this.props.location.state;
         const boardId = this.props.match.params.board_id;
-        this.setState({ boardName: boardName, username: username, boardId: boardId });
+        this.setState({ boardName: boardName, newBoardName: boardName, username: username, boardId: boardId });
     }
 
     componentDidMount() {
@@ -178,10 +180,16 @@ class NoteView extends Component {
     }
 
     updateBoard() {
-        var req = {
-            code: 'boardGetTags',
-            boardId: this.props.match.params.board_id
+        var updateBoardReq = {
+            from: 'BoardManager',
+            code: 'updateBoard',
+            boardId: this.state.board._id,
+            updatedObj: {
+                boardName: this.state.newBoardName
+            }
         };
+        var json = JSON.stringify(updateBoardReq);
+        this.ws.send(json);
     }
 
     showSetting() {
@@ -225,7 +233,7 @@ class NoteView extends Component {
     }
 
     getAllUsers() {
-        window.fetch('http://54.169.35.33:8080/user_list', {
+        window.fetch('http://127.0.0.1:3001/user_list', {
             method: 'GET',
             headers: {
                 "Content-Type": "application/json"
@@ -247,6 +255,18 @@ class NoteView extends Component {
         var requestString = JSON.stringify(exitBoardRequest);
         console.log('exitBoard');
         this.ws.send(requestString);
+    }
+
+    searchUser(e) {
+        e.preventDefault();
+        var searchReq = {
+            from: 'Board',
+            code: 'searchUser',
+            username: this.state.userSearch,
+            boardId: this.state.boardId
+        };
+        var json = JSON.stringify(searchReq);
+        this.ws.send(json);
     }
 
     setInvitedUser(user) {
@@ -497,7 +517,10 @@ class NoteView extends Component {
                     <Modal.Body>
                         <label className="block">
                             Board name:
-                                <input name="boardName" value={this.state.boardName} className="text-box" type="text" onChange={this.handleChange} />
+                                <input name="newBoardName" value={this.state.newBoardName} className="text-box" type="text" onChange={this.handleChange} />
+                                <Button onClick={this.updateBoard}>
+                                Save
+                                </Button>
                         </label>
                         <TagInput tags={this.state.tags} setTag={(tags) => this.setTag(tags)} boardAddTag={this.boardAddTag} boardDeleteTag={this.boardDeleteTag} />
                         <label className="block">
@@ -514,7 +537,14 @@ class NoteView extends Component {
                     <Modal.Header closeButton>
                         <Modal.Title>Invite</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>
+                    <Modal.Body className="medium">
+                        <label className="block">
+                            Search:
+                                <input name="userSearch" value={this.state.userSearch} className="text-box" type="text" onChange={this.handleChange} />
+                            <Button className="lrmargin" bsSize="small" onClick={this.searchUser}>
+                                Search
+                                </Button>
+                        </label>
                         <UserList setInvitedUser={this.setInvitedUser} inviteUser={this.inviteUser} userSearchResult={this.state.userSearchResult} />
                     </Modal.Body>
                     <Modal.Footer>
@@ -527,10 +557,10 @@ class NoteView extends Component {
                         <Modal.Title>Member</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        {this.state.members.map((member)=> {
+                        {this.state.members.map((member) => {
                             return (
                                 <div key={member.username} className="list relative">{member.name}<span className={member.currentBoard === this.state.boardId ? "green-text" : "red-text"} style={{ float: 'right' }}>{member.currentBoard === this.state.boardId ? "online" : "offline"}</span></div>
-                                );
+                            );
                         })}
                     </Modal.Body>
                     <Modal.Footer>
